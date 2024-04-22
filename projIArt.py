@@ -1,3 +1,4 @@
+from sys import stdin
 
 class PipeManiaState:
     state_id = 0
@@ -12,17 +13,30 @@ class PipeManiaState:
 
 class Board:
     """ Representação interna de uma grelha de PipeMania. """
+    def __init__(self, rows: int, cols: int, grid: list[list[str]]):
+        self.rows = rows
+        self.cols = cols
+        self.grid = grid
+
     def adjacent_vertical_values(self, row: int, col: int) -> tuple[str, str]:
-        """ Devolve os valores imediatamente acima e abaixo,
-        respectivamente. """
-        # TODO
-        pass
+        if row == 0:
+            return (None, self.grid[row + 1][col])
+        elif row == self.rows - 1:
+            return (self.grid[row - 1][col], None)
+        else:
+            return (self.grid[row - 1][col], self.grid[row + 1][col])
+
     def adjacent_horizontal_values(self, row: int, col: int) -> tuple[str, str]:
         """ Devolve os valores imediatamente à esquerda e à direita,
         respectivamente. """
-        # TODO
-        pass
-        # TODO: outros metodos da classe
+        
+        if col == 0:
+            return (None, self.grid[row][col+1])
+        elif col == self.cols - 1:
+            return (self.grid[row][col-1], None)
+        else:
+            return (self.grid[row][col-1], self.grid[row][col+1])
+       
 
     @staticmethod
     def parse_instance():
@@ -34,7 +48,28 @@ class Board:
         > line = stdin.readline().split()
         """
         # TODO
-        pass
+        # matrix = []
+        # line = stdin.readline().split()
+        # matrix.append(line)
+
+        
+        #pass
+    def ler_tabuleiro_do_stdin():
+        tabuleiro = []
+        while True:
+            linha = stdin.readline().split() # Lê uma linha do stdin e divide os elementos
+            if not linha:  # Verifica se a linha está vazia
+                break  # Se estiver vazia, interrompe o loop
+            
+            tabuleiro.append(linha)  # Adiciona a linha à lista de tabuleiro
+        return tabuleiro
+
+    def imprimir_tabuleiro(tabuleiro):
+        for linha in tabuleiro:
+            print(' '.join(linha))  # Imprime cada linha do tabuleiro separando os elementos por espaço
+
+
+        
 
 class PipeMania:
     def __init__(self, initial: Board):
