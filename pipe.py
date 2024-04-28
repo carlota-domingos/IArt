@@ -2,9 +2,9 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes sugeridas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 00:
-# 00000 Nome1
-# 00000 Nome2
+# Grupo 93:
+# 107016 Carlota Ribeiro Domingos
+# 107043 Matilde Nunes Martins dos Santos
 
 import sys
 from search import (
@@ -41,21 +41,28 @@ class Board:
         self.grid = grid
 
     def get_value(self, row: int, col: int) -> str:
-        """Devolve o valor na respetiva posição do tabuleiro."""
-        # TODO
-        pass
+        if row >= 0 and row < self.rows and col >= 0 or col < self.cols:
+            #verificar se é mais prático usar base 0 ou base 1
+            #neste momento está em base 0
+            return self.grid[row][col]
+        else:
+            return None
 
-    def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
-        """Devolve os valores imediatamente acima e abaixo,
-        respectivamente."""
-        # TODO
-        pass
+    def adjacent_vertical_values(self, row: int, col: int) -> tuple[str, str]:
+        if row == 0:
+            return None, self.grid[row + 1][col]
+        elif row == self.rows - 1:
+            return self.grid[row - 1][col], None
+        else:
+            return self.grid[row - 1][col], self.grid[row + 1][col]
 
-    def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
-        """Devolve os valores imediatamente à esquerda e à direita,
-        respectivamente."""
-        # TODO
-        pass
+    def adjacent_horizontal_values(self, row: int, col: int) -> tuple[str, str]:
+        if col == 0:
+            return None, self.grid[row][col + 1]
+        elif col == self.cols - 1:
+            return self.grid[row][col - 1], None
+        else:
+            return self.grid[row][col - 1], self.grid[row][col + 1]
 
     @staticmethod
     def parse_instance():
