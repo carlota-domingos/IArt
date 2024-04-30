@@ -27,7 +27,9 @@ class PipeManiaState:
         PipeManiaState.state_id += 1
 
     def __lt__(self, other):
-        return self.id < other.id
+        """ Este método é utilizado em caso de empate na gestão da lista
+        de abertos nas procuras informadas. """
+        return self.id < other.idnao
 
     # TODO: outros metodos da classe
 
@@ -86,7 +88,7 @@ class Board:
                 raise ValueError('Todas as linhas devem ter o mesmo tamanho')  # Se for diferente, lança uma exceção
             elif cols == 0:  # Se for a primeira linha, guarda o tamanho da linha
                 cols = rowsize
-            if not all(r.size == 2 for r in line):
+            if not all(len(r) == 2 for r in line):
                 raise ValueError('Cada elemento do grid deve ter tamanho 2')  # Se o tamanho de algum elemento for diferente de 2, lança uma exceção
             for piece in line:
                 if not ((piece[0] in ['F','B','V'] and piece[1] in ['C','B','E','D']) \
@@ -102,27 +104,51 @@ class Board:
 class PipeMania(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        # TODO
-        pass
-
+        self.initial = PipeManiaState(board)
+    
     def actions(self, state: PipeManiaState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        # TODO
-        pass
+        dir1 = ['D','E','C','B']
+        dir2 = ['V', 'H']
+        actions = [(row, col, state.board.get_value(row, col)[0]+d) for row in range(state.board.rows) for col in range(state.board.cols) 
+                   for d in ((dir1 if (state.board.get_value(row, col)[0]) != 'L' else dir2)) 
+                   if d != state.board.get_value(row, col)[1]]
+        return actions
+
+       
 
     def result(self, state: PipeManiaState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        # TODO
-        pass
+        actions = self.actions(state)
+        board = state.board
+        new_board = [[board.get_value(row, col) for col in range(board.cols)] for row in range(board.rows)]
+        new_board[action[0]][action[1]] = action[2]
+        new_state = PipeManiaState(Board(board.rows, board.cols, new_board))
+        return new_state
 
     def goal_test(self, state: PipeManiaState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
+        #pecas esquerdas não podem ter peças esquerdas ao lado
+        #pecas direitas não podem ter peças direitas ao lado
+        #pecas de cima não podem ter peças de cima na vertical
+        #pecas de baixo não podem ter peças de baixo na vertical
+        #horizontal nao pode ter peca esquerdas nem cantos para cima à esquerda nem peças direitas e cantos para baixo à direita
+        #vertical nao pode ter peças de cima nem cantos para a direita acima nem peças de baixo podem ter vertical e cantos esquerdos abaixo
+        #horizontal nao pode ter pecas para baixo por cima nem pecas para cima por baixo
+
+        #horizontal nao pode ter pecas vazias nos lados
+        #vertical nao pode ter pecas vazias em cima e em baixo
+        #pecas de fecho nao podem ter pecas vazias para onde estao viradas
+        #pecas B so podem enconstar a pecas vazias se esdtas estiverem no lado oposto de onde elas tao viradas
+         
+
+
         # TODO
         pass
 
@@ -135,6 +161,15 @@ class PipeMania(Problem):
 
 
 if __name__ == "__main__":
+    board = Board.parse_instance()
+    pipe = PipeMania(board)
+    for line in board.grid:
+        print(" ".join(line))
+    actions = pipe.actions(pipe.initial)
+    print(actions)
+    new_state = pipe.result(pipe.initial, actions[0])
+    print(new_state.board.grid)
+
     # TODO:
     # Ler o ficheiro do standard input,
     # Usar uma técnica de procura para resolver a instância,
