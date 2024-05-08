@@ -257,25 +257,22 @@ class PipeMania(Problem):
         for col in range(state.board.cols):
             # Top border
             if state.board.get_value(0, col) & N:
-
                 return False
             # Bottom border
             if state.board.get_value(state.board.rows - 1, col) & S:
-
                 return False
 
         # Check left and right borders
         for row in range(state.board.rows):
             # Left border
             if state.board.get_value(row, 0) & W:
-
                 return False
             # Right border
             if state.board.get_value(row, state.board.cols - 1) & E:
-
                 return False
             rows = state.board.rows
             cols = state.board.cols
+
         for row in range(1, rows, 2):  # verificar comm cuidado mais tarde
             for col in range(
                 row % 2, cols - 2 + (cols % 2) - (row % 2), 2
@@ -300,12 +297,55 @@ class PipeMania(Problem):
                     return False
         return True
 
-    def h(self, node: Node):
-        """Função heuristica utilizada para a procura A*."""
-        # TODO
-        pass
 
-    # TODO: outros metodos da classe
+def goal_test_it_dfs(self, state: PipeManiaState):
+    n_visited = 0
+    edges = [(0, N, 0), (0, W, 1)]
+    stack = [
+        (0, 0),
+    ]
+    visited = set()
+
+    while stack:
+        node = stack.pop()
+        if node in visited:
+            continue
+
+        visited.add(node)
+        n_visited += 1
+
+        piece = state.board.get_value(node[0], node[1])
+
+        _, down = state.board.adjacent_vertical_values(node[0], node[1])
+        _, right = state.board.adjacent_horizontal_values(node[0], node[1])
+        for edge, direction, n in edges:
+            if node[n] == edge and piece & direction:
+                return False
+
+        next_node = (node[0] + 1, node[1])
+        if next_node not in visited and piece & S and down & N:
+            if next_node[0] < state.board.rows:
+                stack.append(next_node)
+            elif piece & S ^ down & N:
+                return False
+
+        next_node = (node[0], node[1] + 1)
+        if next_node not in visited and piece & E and right & W:
+            if next_node[1] < state.board.cols:
+                stack.append(next_node)
+            elif piece & E ^ right & W:
+                return False
+            
+    return n_visited == state.board.rows * state.board.cols
+
+
+def h(self, node: Node):
+    """Função heuristica utilizada para a procura A*."""
+    # TODO
+    pass
+
+
+# TODO: outros metodos da classe
 
 
 if __name__ == "__main__":
