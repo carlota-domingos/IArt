@@ -23,7 +23,9 @@ N = 0b0100
 W = 0b0010
 S = 0b0001
 
+
 binary_dict = {
+    # extra bit for wheter the pice has been visited or not
     "FD": 0b1000,
     "FC": 0b0100,
     "FE": 0b0010,
@@ -40,21 +42,37 @@ binary_dict = {
     "LV": 0b0101,
 }
 
+rotated_dict = {
+    0b1000: [0b1000, 0b0100, 0b0010, 0b0001],
+    0b0100: [0b0100, 0b0010, 0b0001, 0b1000],
+    0b0010: [0b0010, 0b0001, 0b1000, 0b0100],
+    0b0001: [0b0001, 0b1000, 0b0100, 0b0010],
+    0b1101: [0b1101, 0b1011, 0b0111, 0b1110],
+    0b1011: [0b1011, 0b0111, 0b1110, 0b1101],
+    0b0111: [0b0111, 0b1110, 0b1101, 0b1011],
+    0b1110: [0b1110, 0b1101, 0b1011, 0b0111],
+    0b1100: [0b1100, 0b1001, 0b0011, 0b0110],
+    0b1001: [0b1001, 0b0011, 0b0110, 0b1100],
+    0b0011: [0b0011, 0b0110, 0b1100, 0b1001],
+    0b0110: [0b0110, 0b1100, 0b1001, 0b0011],
+    0b1010: [0b1010, 0b0101],
+    0b0101: [0b0101, 0b1010],
+}
+
+
 
 class PipeManiaState:
     state_id = 0
-
-    def __init__(self, board):
+    def __init__(self, board, depth: int):
         self.board = board
         self.id = PipeManiaState.state_id
         PipeManiaState.state_id += 1
+        self.depth = depth
 
     def __lt__(self, other):
         """Este método é utilizado em caso de empate na gestão da lista
         de abertos nas procuras informadas."""
-        return self.id < other.idnao
-
-    # TODO: outros metodos da classe
+        return self.id < other.id
 
 
 class Board:
@@ -140,7 +158,8 @@ class Board:
 class PipeMania(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        self.initial = PipeManiaState(board)
+        self.initial = PipeManiaState(board, 0)
+        self.setpieces: set[tuple[int, int]] = set()
 
     @staticmethod
     def rotate(piece: int, n: int) -> int:
@@ -152,219 +171,241 @@ class PipeMania(Problem):
             rotated_piece = rotated_piece & 0b1111
         return rotated_piece
 
+    @staticmethod
+    def check_compatibility(piece: int, second_piece: int, direction: int) -> bool:
+        """checks if two pieces either have a connection or face opposite directions"""
+        if direction == 0:
+            return (bool(piece & N) and bool(second_piece & S)) or (
+                not bool(piece & N) and not bool(second_piece & S)
+            )
+        if direction == 1:
+            return (bool(piece & E) and bool(second_piece & W)) or (
+                not bool(piece & E) and not bool(second_piece & W)
+            )
+        if direction == 2:
+            return (bool(piece & S) and bool(second_piece & N)) or (
+                not bool(piece & S) and not bool(second_piece & N)
+            )
+        if direction == 3:
+            return (bool(piece & W) and bool(second_piece & E)) or (
+                not bool(piece & W) and not bool(second_piece & E)
+            )
+        return False
+
+    @staticmethod
+    def get_piece(state: PipeManiaState) -> tuple[int, int]:
+        return (state.depth // state.board.cols, state.depth % state.board.cols)
+
     def actions(self, state: PipeManiaState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        actions = set()
+        # if state.depth == state.board.rows * state.board.cols:
+        #     return []
 
-        for n in range(1, 4):
-            ## verifica cantos
-            piece = state.board.get_value(0, 0)
-            rotated_piece = self.rotate(piece, n)
+        # impossibleactions = []
+        # actionslst: set[tuple[int, int, int]] = set()
+        # current_piece = self.get_piece(state)
 
-            if not rotated_piece & N and not rotated_piece & W:
-                actions.add((0, 0, rotated_piece))
+        # piece = state.board.get_value(current_piece[0], current_piece[1])
+        # adj_coords = [
+        #     (current_piece[0] - 1, current_piece[1]),
+        #     (current_piece[0], current_piece[1] + 1),
+        #     (current_piece[0] + 1, current_piece[1]),
+        #     (current_piece[0], current_piece[1] - 1),
+        # ]
+        # rotated_pieces = rotated_dict[piece]
 
-            piece = state.board.get_value(0, state.board.cols - 1)
-            rotated_piece = self.rotate(piece, n)
-            if not rotated_piece & N and not rotated_piece & E:
-                actions.add((0, state.board.cols - 1, rotated_piece))
+        # for neighbour in adj_coords:
+        #     if (
+        #         neighbour[0] >= 0
+        #         and neighbour[0] < state.board.rows
+        #         and neighbour[1] >= 0
+        #         and neighbour[1] < state.board.cols
+        #     ):
+        #         second_piece = state.board.get_value(neighbour[0], neighbour[1])
+        #     else:
+        #         second_piece = 0
+        #     for rotated_piece in rotated_pieces:
+        #         if (
+        #             second_piece == 0
+        #             or second_piece == 1
+        #             or neighbour in self.setpieces
+        #         ):
+        #             if not self.check_compatibility(
+        #                 rotated_piece, second_piece, adj_coords.index(neighbour)
+        #             ):
+        #                 (
+        #                     actionslst.remove(
+        #                         (current_piece[0], current_piece[1], rotated_piece)
+        #                     )
+        #                     if (current_piece[0], current_piece[1], rotated_piece)
+        #                     in actionslst
+        #                     else None
+        #                 )
+        #                 impossibleactions.append(
+        #                     (current_piece[0], current_piece[1], rotated_piece)
+        #                 )
+        #             else:
+        #                 (
+        #                     actionslst.add(
+        #                         (current_piece[0], current_piece[1], rotated_piece)
+        #                     )
+        #                     if (current_piece[0], current_piece[1], rotated_piece)
+        #                     not in impossibleactions
+        #                     else None
+        #                 )
+        #         else:
+        #             (
+        #                 actionslst.add(
+        #                     (current_piece[0], current_piece[1], rotated_piece)
+        #                 )
+        #                 if (current_piece[0], current_piece[1], rotated_piece)
+        #                 not in impossibleactions
+        #                 else None
+        #             )
 
-            piece = state.board.get_value(state.board.rows - 1, 0)
-            rotated_piece = self.rotate(piece, n)
-            if not rotated_piece & S and not rotated_piece & W:
-                actions.add((state.board.rows - 1, 0, rotated_piece))
+        # if len(actionslst) == 1:
+        #     self.setpieces.add((current_piece[0], current_piece[1]))
 
-            piece = state.board.get_value(state.board.rows - 1, state.board.cols - 1)
-            rotated_piece = self.rotate(piece, n)
-            if not rotated_piece & S and not rotated_piece & E:
-                actions.add((state.board.rows - 1, state.board.cols - 1, rotated_piece))
-
-            # for loop for the first and last row
-            for col in range(1, state.board.cols - 1):
-                piece = state.board.get_value(0, col)
-                rotated_piece = self.rotate(piece, n)
-                (
-                    actions.add((0, col, rotated_piece))
-                    if not rotated_piece & N and rotated_piece != piece
-                    else None
-                )
-                piece = state.board.get_value(state.board.rows - 1, col)
-                rotated_piece = self.rotate(piece, n)
-                (
-                    actions.add((state.board.rows - 1, col, rotated_piece))
-                    if not rotated_piece & S and rotated_piece != piece
-                    else None
-                )
-
-            # for loop for the first and last column
-            for row in range(1, state.board.rows - 1):
-                piece = state.board.get_value(row, 0)
-                rotated_piece = self.rotate(piece, n)
-                (
-                    actions.add((row, 0, rotated_piece))
-                    if not rotated_piece & W and rotated_piece != piece
-                    else None
-                )
-                piece = state.board.get_value(row, state.board.cols - 1)
-                rotated_piece = self.rotate(piece, n)
-                (
-                    actions.add(
-                        (
-                            row,
-                            state.board.cols - 1,
-                            rotated_piece,
-                        )
-                    )
-                    if not rotated_piece & E and rotated_piece != piece
-                    else None
-                )
-            # for loop for the rest of the board where it adds the rest of the actions
-            for row in range(1, state.board.rows - 1):
-                for col in range(1, state.board.cols - 1):
-                    piece = state.board.get_value(row, col)
-                    rotated_piece = self.rotate(state.board.get_value(row, col), n)
-                    (
-                        actions.add(
-                            (row, col, self.rotate(state.board.get_value(row, col), n))
-                        )
-                        if rotated_piece != piece
-                        else None
-                    )
-        return list(actions)
+        # return list(actionslst)
+        if state.depth == state.board.rows * state.board.cols:
+            return []
+        current_piece = self.get_piece(state)
+        piece = state.board.get_value(current_piece[0], current_piece[1])
+        actionslst = []
+        rotated_pieces = rotated_dict[piece]
+        adj_coords = [
+            (current_piece[0] - 1, current_piece[1]),
+            (current_piece[0], current_piece[1] + 1),
+            (current_piece[0] + 1, current_piece[1]),
+            (current_piece[0], current_piece[1] - 1),
+        ]
+        for rotated in rotated_pieces:
+            add = True
+            for i, adj in enumerate(adj_coords):
+                if (
+                    adj[0] >= 0
+                    and adj[0] < state.board.rows
+                    and adj[1] >= 0
+                    and adj[1] < state.board.cols
+                ):
+                    second_piece = state.board.get_value(adj[0], adj[1])
+                else:
+                    second_piece = 0
+                if (
+                    second_piece == 0 or (adj in self.setpieces and (i==0 or i==3))
+                ) and not self.check_compatibility(rotated, second_piece, i):
+                    print (second_piece,rotated, i)
+                    add = False
+                    break
+            if add:
+                actionslst.append((current_piece[0], current_piece[1], rotated))
+        if len(actionslst) == 1:
+            self.setpieces.add((current_piece[0], current_piece[1]))
+        print(current_piece)
+        print(actionslst)
+        return list(actionslst)
 
     def result(self, state: PipeManiaState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        actions = self.actions(state)
         board = state.board
+        print("before")
+        for line in board.grid:
+            for piece in line:
+                print(board.convert_piece(piece), end=" ")
+            print()
+        print(action)
+
         new_board = [
             [board.get_value(row, col) for col in range(board.cols)]
             for row in range(board.rows)
         ]
-        if action not in actions:
-            raise ValueError("Ação inválida")
         new_board[action[0]][action[1]] = action[2]
-        new_state = PipeManiaState(Board(board.rows, board.cols, new_board))
+        new_depth = state.depth + 1
+        new_state = PipeManiaState(Board(board.rows, board.cols, new_board), new_depth)
+        for line in new_board:
+            for piece in line:
+                print(board.convert_piece(piece), end=" ")
+            print()
+        print()
         return new_state
 
     def goal_test(self, state: PipeManiaState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        for col in range(state.board.cols):
-            # Top border
-            if state.board.get_value(0, col) & N:
-                return False
-            # Bottom border
-            if state.board.get_value(state.board.rows - 1, col) & S:
-                return False
+        n_visited = 0
+        stack = [
+            (0, 0),
+        ]
+        visited = set()
 
-        # Check left and right borders
-        for row in range(state.board.rows):
-            # Left border
-            if state.board.get_value(row, 0) & W:
-                return False
-            # Right border
-            if state.board.get_value(row, state.board.cols - 1) & E:
-                return False
-            rows = state.board.rows
-            cols = state.board.cols
+        while stack:
+            node = stack.pop()
+            if node in visited:
+                continue
 
-        for row in range(1, rows, 2):  # verificar comm cuidado mais tarde
-            for col in range(
-                row % 2, cols - 2 + (cols % 2) - (row % 2), 2
-            ):  # verificar isto com cuidado mais tarde
-                piece = state.board.get_value(row, col)
-                up, down = state.board.adjacent_vertical_values(row, col)
-                left, right = state.board.adjacent_horizontal_values(row, col)
+            visited.add(node)
+            n_visited += 1
+            piece = state.board.get_value(node[0], node[1])
 
-                if not ((piece & N and up & S) or (not (piece & N) and not (up & S))):
-                    return False
-                if not (
-                    (piece & W and left & E) or (not (piece & W) and not (left & E))
-                ):
-                    return False
-                if not (
-                    (piece & S and down & N) or (not (piece & S) and not (down & N))
-                ):
-                    return False
-                if not (
-                    (piece & E and right & W) or (not (piece & E) and not (right & W))
-                ):
-                    return False
-        return True
+            up, down = state.board.adjacent_vertical_values(node[0], node[1])
+            left, right = state.board.adjacent_horizontal_values(node[0], node[1])
 
-
-def goal_test_it_dfs(self, state: PipeManiaState):
-    n_visited = 0
-    edges = [(0, N, 0), (0, W, 1)]
-    stack = [
-        (0, 0),
-    ]
-    visited = set()
-
-    while stack:
-        node = stack.pop()
-        if node in visited:
-            continue
-
-        visited.add(node)
-        n_visited += 1
-
-        piece = state.board.get_value(node[0], node[1])
-
-        _, down = state.board.adjacent_vertical_values(node[0], node[1])
-        _, right = state.board.adjacent_horizontal_values(node[0], node[1])
-        for edge, direction, n in edges:
-            if node[n] == edge and piece & direction:
+            next_node = (node[0] + 1, node[1])
+            if next_node not in visited and piece & S and down & N:
+                if next_node[0] < state.board.rows:
+                    stack.append(next_node)
+            elif ((piece & S) and not (down & N)) or (not (piece & S) and down & N):
+                # xor operator uses integers converting to boolean and then back to integer would be more time consuming
                 return False
 
-        next_node = (node[0] + 1, node[1])
-        if next_node not in visited and piece & S and down & N:
-            if next_node[0] < state.board.rows:
-                stack.append(next_node)
-            elif piece & S ^ down & N:
+            next_node = (node[0], node[1] + 1)
+            if next_node not in visited and piece & E and right & W:
+                if next_node[1] < state.board.cols:
+                    stack.append(next_node)
+            elif ((piece & E) and not (right & W)) or (not (piece & E) and right & W):
                 return False
 
-        next_node = (node[0], node[1] + 1)
-        if next_node not in visited and piece & E and right & W:
-            if next_node[1] < state.board.cols:
-                stack.append(next_node)
-            elif piece & E ^ right & W:
+            next_node = (node[0] - 1, node[1])
+            if next_node not in visited and piece & N and up & S:
+                if next_node[0] >= 0:
+                    stack.append(next_node)
+            elif ((piece & N) and not (up & S)) or (not (piece & N) and up & S):
                 return False
-            
-    return n_visited == state.board.rows * state.board.cols
 
+            next_node = (node[0], node[1] - 1)
+            if next_node not in visited and piece & W and left & E:
+                if next_node[1] >= 0:
+                    stack.append(next_node)
+            elif ((piece & W) and not (left & E)) or (not (piece & W) and left & E):
+                return False
+        return n_visited == state.board.rows * state.board.cols
 
-def h(self, node: Node):
-    """Função heuristica utilizada para a procura A*."""
-    # TODO
-    pass
-
-
-# TODO: outros metodos da classe
+    def h(self, node: Node):
+        """Função heuristica utilizada para a procura A*."""
+        # Number of remaining actions as heuristic
+        remaining_actions = len(self.actions(node.state))
+        return remaining_actions
 
 
 if __name__ == "__main__":
     board = Board.parse_instance()
     pipe = PipeMania(board)
-    for line in board.grid:
+
+    node = depth_first_tree_search(pipe)
+
+    for line in node.state.board.grid:
         for piece in line:
-            # print(f"{piece:>04b}", end=" ")
-            print(board.convert_piece(piece), end=" ")
-    actions = pipe.actions(pipe.initial)
-    print(sorted(actions))  # Fix: Replace 'sort' with 'sorted'
-    # new_state = pipe.result(pipe.initial, actions[0])
-    # for line in new_state.board.grid:
-    # for piece in line:
-    #     print(board.convert_piece(piece), end=" ")
-    print(pipe.goal_test(pipe.initial))
-    # TODO:
-    # Ler o ficheiro do standard input,
-    # Usar uma técnica de procura para resolver a instância,
-    # Retirar a solução a partir do nó resultante,
-    # Imprimir para o standard output no formato indicado.
-    pass
+            print(board.convert_piece(piece), end="\t")
+        print()
+    exit(0)
+
+    # para ver o tabuleiro
+    # for line in board.grid:
+    #     for piece in line:
+    #         print(f"{piece:>04b}", end=" ")
+    #         print(board.convert_piece(piece), end=" ")
