@@ -23,7 +23,6 @@ N = 0b0100
 W = 0b0010
 S = 0b0001
 
-
 binary_dict = {
     # extra bit for wheter the pice has been visited or not
     "FD": 0b1000,
@@ -60,14 +59,14 @@ rotated_dict = {
 }
 
 
-
 class PipeManiaState:
     state_id = 0
-    def __init__(self, board, depth: int):
+
+    def __init__(self, board, coord):
         self.board = board
         self.id = PipeManiaState.state_id
         PipeManiaState.state_id += 1
-        self.depth = depth
+        self.coordinate = coord
 
     def __lt__(self, other):
         """Este método é utilizado em caso de empate na gestão da lista
@@ -158,8 +157,9 @@ class Board:
 class PipeMania(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        self.initial = PipeManiaState(board, 0)
-        self.setpieces: set[tuple[int, int]] = set()
+        self.initial = PipeManiaState(board, (0, 0))
+        self.setpieces = np.zeros((board.rows, board.cols))
+        self.limit = board.rows // 2 + board.rows % 2
 
     @staticmethod
     def rotate(piece: int, n: int) -> int:
@@ -193,118 +193,68 @@ class PipeMania(Problem):
         return False
 
     @staticmethod
-    def get_piece(state: PipeManiaState) -> tuple[int, int]:
-        return (state.depth // state.board.cols, state.depth % state.board.cols)
+    def get_next_coord(state: PipeManiaState, current_piece):
+        if (
+            current_piece[0] == state.board.rows - 1
+            and current_piece[1] == state.board.cols - 1
+        ):
+            return (0, 0)
+        if current_piece[1] == state.board.cols - 1:
+            return (current_piece[0] + 1, 0)
+        return (current_piece[0], current_piece[1] + 1)
 
     def actions(self, state: PipeManiaState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        # if state.depth == state.board.rows * state.board.cols:
-        #     return []
+        current_piece = state.coordinate
+        flag = False
+        initial = state.coordinate
+        while True:
+            if current_piece == initial and flag:
+                # print("lista de acoes", [])
+                return []
+            flag = True
 
-        # impossibleactions = []
-        # actionslst: set[tuple[int, int, int]] = set()
-        # current_piece = self.get_piece(state)
+            piece = state.board.get_value(current_piece[0], current_piece[1])
+            actionslst = []
+            rotated_pieces = rotated_dict[piece]
+            adj_coords = [
+                (current_piece[0] - 1, current_piece[1]),
+                (current_piece[0], current_piece[1] + 1),
+                (current_piece[0] + 1, current_piece[1]),
+                (current_piece[0], current_piece[1] - 1),
+            ]
+            for rotated in rotated_pieces:
+                add = True
+                for i, adj in enumerate(adj_coords):
+                    if (
+                        adj[0] >= 0
+                        and adj[0] < state.board.rows
+                        and adj[1] >= 0
+                        and adj[1] < state.board.cols
+                    ):
+                        second_piece = state.board.get_value(adj[0], adj[1])
+                        if self.setpieces[adj[0]][adj[1]] != 0:
+                            second_piece = int(self.setpieces[adj[0]][adj[1]])
 
-        # piece = state.board.get_value(current_piece[0], current_piece[1])
-        # adj_coords = [
-        #     (current_piece[0] - 1, current_piece[1]),
-        #     (current_piece[0], current_piece[1] + 1),
-        #     (current_piece[0] + 1, current_piece[1]),
-        #     (current_piece[0], current_piece[1] - 1),
-        # ]
-        # rotated_pieces = rotated_dict[piece]
+                    else:
+                        second_piece = 0
+                    if (
+                        second_piece == 0 or (self.setpieces[adj[0]][adj[1]] != 0)
+                    ) and not self.check_compatibility(rotated, second_piece, i):
+                        #
+                        # print ("2nd:", second_piece,"rotated", rotated,"i", i)
+                        add = False
+                        break
+                if add:
+                    actionslst.append((current_piece[0], current_piece[1], rotated))
 
-        # for neighbour in adj_coords:
-        #     if (
-        #         neighbour[0] >= 0
-        #         and neighbour[0] < state.board.rows
-        #         and neighbour[1] >= 0
-        #         and neighbour[1] < state.board.cols
-        #     ):
-        #         second_piece = state.board.get_value(neighbour[0], neighbour[1])
-        #     else:
-        #         second_piece = 0
-        #     for rotated_piece in rotated_pieces:
-        #         if (
-        #             second_piece == 0
-        #             or second_piece == 1
-        #             or neighbour in self.setpieces
-        #         ):
-        #             if not self.check_compatibility(
-        #                 rotated_piece, second_piece, adj_coords.index(neighbour)
-        #             ):
-        #                 (
-        #                     actionslst.remove(
-        #                         (current_piece[0], current_piece[1], rotated_piece)
-        #                     )
-        #                     if (current_piece[0], current_piece[1], rotated_piece)
-        #                     in actionslst
-        #                     else None
-        #                 )
-        #                 impossibleactions.append(
-        #                     (current_piece[0], current_piece[1], rotated_piece)
-        #                 )
-        #             else:
-        #                 (
-        #                     actionslst.add(
-        #                         (current_piece[0], current_piece[1], rotated_piece)
-        #                     )
-        #                     if (current_piece[0], current_piece[1], rotated_piece)
-        #                     not in impossibleactions
-        #                     else None
-        #                 )
-        #         else:
-        #             (
-        #                 actionslst.add(
-        #                     (current_piece[0], current_piece[1], rotated_piece)
-        #                 )
-        #                 if (current_piece[0], current_piece[1], rotated_piece)
-        #                 not in impossibleactions
-        #                 else None
-        #             )
-
-        # if len(actionslst) == 1:
-        #     self.setpieces.add((current_piece[0], current_piece[1]))
-
-        # return list(actionslst)
-        if state.depth == state.board.rows * state.board.cols:
-            return []
-        current_piece = self.get_piece(state)
-        piece = state.board.get_value(current_piece[0], current_piece[1])
-        actionslst = []
-        rotated_pieces = rotated_dict[piece]
-        adj_coords = [
-            (current_piece[0] - 1, current_piece[1]),
-            (current_piece[0], current_piece[1] + 1),
-            (current_piece[0] + 1, current_piece[1]),
-            (current_piece[0], current_piece[1] - 1),
-        ]
-        for rotated in rotated_pieces:
-            add = True
-            for i, adj in enumerate(adj_coords):
-                if (
-                    adj[0] >= 0
-                    and adj[0] < state.board.rows
-                    and adj[1] >= 0
-                    and adj[1] < state.board.cols
-                ):
-                    second_piece = state.board.get_value(adj[0], adj[1])
-                else:
-                    second_piece = 0
-                if (
-                    second_piece == 0 or (adj in self.setpieces and (i==0 or i==3))
-                ) and not self.check_compatibility(rotated, second_piece, i):
-                    print (second_piece,rotated, i)
-                    add = False
-                    break
-            if add:
-                actionslst.append((current_piece[0], current_piece[1], rotated))
-        if len(actionslst) == 1:
-            self.setpieces.add((current_piece[0], current_piece[1]))
-        print(current_piece)
-        print(actionslst)
-        return list(actionslst)
+            if len(actionslst) == 1:
+                state.coordinate = current_piece
+                self.setpieces[current_piece[0], current_piece[1]] = actionslst[0][2]
+                return actionslst
+            else:
+                current_piece = self.get_next_coord(state, current_piece)
 
     def result(self, state: PipeManiaState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -312,26 +262,29 @@ class PipeMania(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         board = state.board
-        print("before")
-        for line in board.grid:
-            for piece in line:
-                print(board.convert_piece(piece), end=" ")
-            print()
-        print(action)
+        # print("before")
+        # for line in board.grid:
+        #     for piece in line:
+        #         print(board.convert_piece(piece), end=" ")
+        #     print()
+        # print(action)
 
         new_board = [
             [board.get_value(row, col) for col in range(board.cols)]
             for row in range(board.rows)
         ]
+        # print("new")
         new_board[action[0]][action[1]] = action[2]
-        new_depth = state.depth + 1
-        new_state = PipeManiaState(Board(board.rows, board.cols, new_board), new_depth)
-        for line in new_board:
-            for piece in line:
-                print(board.convert_piece(piece), end=" ")
-            print()
-        print()
-        return new_state
+
+        # for line in new_board:
+        #     for piece in line:
+        #         print(board.convert_piece(piece), end=" ")
+        #     print()
+        # print()
+        return PipeManiaState(
+            Board(board.rows, board.cols, new_board),
+            self.get_next_coord(state, state.coordinate),
+        )
 
     def goal_test(self, state: PipeManiaState):
         """Retorna True se e só se o estado passado como argumento é
@@ -388,8 +341,7 @@ class PipeMania(Problem):
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
         # Number of remaining actions as heuristic
-        remaining_actions = len(self.actions(node.state))
-        return remaining_actions
+        return 1
 
 
 if __name__ == "__main__":
@@ -402,7 +354,7 @@ if __name__ == "__main__":
         for piece in line:
             print(board.convert_piece(piece), end="\t")
         print()
-    exit(0)
+    pass
 
     # para ver o tabuleiro
     # for line in board.grid:
