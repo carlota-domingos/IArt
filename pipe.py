@@ -24,7 +24,6 @@ W = 0b0010
 S = 0b0001
 
 binary_dict = {
-    # extra bit for wheter the pice has been visited or not
     "FD": 0b1000,
     "FC": 0b0100,
     "FE": 0b0010,
@@ -100,7 +99,6 @@ class Board:
         right = self.grid[row, col + 1] if col < self.cols - 1 else 0
         return left, right
 
-        # TODO: outros metodos da classe
 
     @staticmethod
     def parse_instance():
@@ -118,31 +116,14 @@ class Board:
         while True:
             line = (
                 sys.stdin.readline().split()
-            )  # Lê uma linha do stdin e divide os elementos
-            if not line:  # Verifica se a linha está vazia
-                break  # Se estiver vazia, interrompe o loop
+            )  
+            if not line:  
+                break 
             rowsize = len(line)
-            if (
-                rowsize != cols and cols != 0
-            ):  # Verifica se o tamanho da linha é diferente do tamanho das linhas anteriores
-                raise ValueError(
-                    "Todas as linhas devem ter o mesmo tamanho"
-                )  # Se for diferente, lança uma exceção
-            elif cols == 0:  # Se for a primeira linha, guarda o tamanho da linha
+            if cols == 0:  # Se for a primeira linha, guarda o tamanho da linha
                 cols = rowsize
-            if not all(len(r) == 2 for r in line):
-                raise ValueError(
-                    "Cada elemento do grid deve ter tamanho 2"
-                )  # Se o tamanho de algum elemento for diferente de 2, lança uma exceção
             n_line = []
             for piece in line:
-                if not (
-                    (piece[0] in ["F", "B", "V"] and piece[1] in ["C", "B", "E", "D"])
-                    or (piece[0] == "L" and piece[1] in ["V", "H"])
-                ):
-                    raise ValueError(
-                        "peça inválida"
-                    )  # Se a peça não for válida, lança uma exceção
                 n_line.append(binary_dict[piece])
             rows += 1  # Incrementa o número de linhas
             grid.append(n_line)
@@ -244,7 +225,6 @@ class PipeMania(Problem):
         return inferences
     
     def decide_board2(self, state: PipeManiaState):
-        #print("decide")
         current_piece = state.coord 
         while current_piece is not None:
             if state.pieces[current_piece[0], current_piece[1]] != 0:
@@ -285,29 +265,22 @@ class PipeMania(Problem):
                 state.pieces[current_piece[0], current_piece[1]] = rotated
                 state.board.grid[current_piece[0]][current_piece[1]] = piece_actions[0][2]
             current_piece = self.get_next_coord(state, current_piece)
-        # for line in state.pieces:
-        #     print("\t".join(state.board.convert_piece(piece) for piece in line))
         return
 
 
         
     def actions(self, state: PipeManiaState):
-        #print("actions")
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
         actions :list = []
         coord = state.coord
         if state.pieces[coord[0], coord[1]] != 0:
-            #print("a")
             coord = self.get_next_coord(state, coord)
             while state.pieces[coord[0], coord[1]] != 0:
-                #print("b")
                 coord = self.get_next_coord(state, coord)
                 if coord is None:
                     return actions
             state.coord = coord
-            
-        #print("coordenada act:", coord)
         if state.coord is None:
             return actions
         piece = state.board.get_value(coord[0], coord[1])
@@ -328,22 +301,17 @@ class PipeMania(Problem):
                     and adj[1] >= 0
                     and adj[1] < state.board.cols
                 ):
-                    #print("1")
                     second_piece = state.board.get_value(adj[0], adj[1])
                 else:
-                    #print("2")
                     second_piece = 0
                 if (
                     second_piece == 0
                     or state.pieces[adj[0]][adj[1]] != 0 
                 ) and not self.check_compatibility(rotated, second_piece, i):
-                    #print("3")
                     add = False
                     break
             if add:
-                #print("add")
                 actions.append((coord[0], coord[1], rotated))
-        #print("actions resturn", actions)
         return actions
         
 
@@ -355,7 +323,6 @@ class PipeMania(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        #print("result")
         board = state.board
         
 
@@ -368,15 +335,12 @@ class PipeMania(Problem):
         new_state.pieces[action[0], action[1]] = action[2]
         self.decide_board2(new_state)
         
-        #print("coord", coord)
         return new_state
 
     def goal_test(self, state: PipeManiaState):
-        
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        #print("goal")
         n_visited = 0
         stack = [
             (0, 0),
@@ -400,7 +364,6 @@ class PipeMania(Problem):
                 if next_node[0] < state.board.rows:
                     stack.append(next_node)
             elif ((piece & S) and not (down & N)) or (not (piece & S) and down & N):
-                # xor operator uses integers converting to boolean and then back to integer would be more time consuming
                 return False
 
             next_node = (node[0], node[1] + 1)
@@ -427,7 +390,6 @@ class PipeMania(Problem):
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        # Number of remaining actions as heuristic
         return 1
 
 
