@@ -77,7 +77,7 @@ class PipeManiaState:
 class Board:
     """Representação interna de um tabuleiro de PipeMania."""
 
-    def __init__(self, rows: int, cols: int, grid: list[list[str]]):
+    def __init__(self, rows: int, cols: int, grid: list ):
         self.rows = rows
         self.cols = cols
         self.grid = np.array(grid)
@@ -88,12 +88,12 @@ class Board:
         else:
             return ""
 
-    def adjacent_vertical_values(self, row: int, col: int) -> tuple[int, int]:
+    def adjacent_vertical_values(self, row: int, col: int) :
         up = self.grid[row - 1, col] if row > 0 else 0
         low = self.grid[row + 1, col] if row < self.rows - 1 else 0
         return up, low
 
-    def adjacent_horizontal_values(self, row: int, col: int) -> tuple[int, int]:
+    def adjacent_horizontal_values(self, row: int, col: int) :
         left = self.grid[row, col - 1] if col > 0 else 0
         right = self.grid[row, col + 1] if col < self.cols - 1 else 0
         return left, right
@@ -351,13 +351,5 @@ if __name__ == "__main__":
     node = depth_first_tree_search(pipe)
 
     for line in node.state.board.grid:
-        for piece in line:
-            print(board.convert_piece(piece), end="\t")
-        print()
+        print("\t".join(board.convert_piece(piece) for piece in line))
     pass
-
-    # para ver o tabuleiro
-    # for line in board.grid:
-    #     for piece in line:
-    #         print(f"{piece:>04b}", end=" ")
-    #         print(board.convert_piece(piece), end=" ")
